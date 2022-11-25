@@ -1,0 +1,62 @@
+version: '3'
+volumes:
+  geo-db-data:
+  nifi-database-repository:
+  nifi-flowfile-repository:
+  nifi-content-repository:
+  nifi-provenance-repository:
+  nifi-state:
+  nifi-logs:
+  nifi-nars:
+  nifi-conf:
+
+
+services:
+  dba:
+    image: dpage/pgadmin4:latest
+    container_name: ldes-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ldes@ldes.be
+      PGADMIN_DEFAULT_PASSWORD: ldes
+    ports:
+      - 8001:80
+    depends_on:
+      - timescaledb
+  
+  timescaledb:
+    #image: timescale/timescaledb-ha:pg14-latest
+    build: ./timescaledb/
+    container_name: ldes-postgis
+    ports:
+      - 5432:5432/tcp
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: water_quality
+  
+  prometheus:
+    image: prom/prometheus:latest
+    depends_on:
+      - promscale
+    ports:
+      - 9090:9090/tcp
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+
+  nifi:
+    image: ghcr.io/informatievlaanderen/ldes-workbench-nifi:latest
+    container_name: ldes-nifi
+    restart: unless-stopped
+    ports:
+      # HTTPS
+      - 8443:8443/tcp
+    volumes:
+      - ./nifi-extensions:/opt/nifi/nifi-current/extensions
+    environment:
+      - NIFI_UI_PORT=8443
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=admin123456789
+      - NIFI_WORKFLOW_LISTEN_PORT=9005
+      - NIFI_JVM_HEAP_INIT=8g
+      - NIFI_JVM_HEAP_MAX=8g

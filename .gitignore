@@ -1,0 +1,4 @@
+backup/daily/*
+backup/last/*
+backup/monthly/*
+backup/weekly/*
